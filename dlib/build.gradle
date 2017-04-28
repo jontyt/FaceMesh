@@ -1,18 +1,18 @@
 apply plugin: 'com.android.library'
 
 // required by POM
-version = "${rootProject.ext.releaseVersionName}"
+version = "1"
 group = "com.tzutalin.dlib-android-app"
 
 android {
-    compileSdkVersion 23
-    buildToolsVersion "${rootProject.ext.androidBuildToolsVersion}"
+    compileSdkVersion 25
+    buildToolsVersion "25.0.2"
 
     defaultConfig {
         minSdkVersion 14
-        targetSdkVersion 23
+        targetSdkVersion 25
         versionCode 1
-        versionName "${rootProject.ext.releaseVersionName}"
+        versionName "25.0.2"
     }
 
     buildTypes {

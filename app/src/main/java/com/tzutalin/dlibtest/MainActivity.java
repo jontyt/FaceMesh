@@ -28,6 +28,9 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.Toast;
 
 import com.dexafree.materialList.card.Card;
@@ -37,6 +40,7 @@ import com.tzutalin.dlib.Constants;
 import com.tzutalin.dlib.FaceDet;
 import com.tzutalin.dlib.PedestrianDet;
 import com.tzutalin.dlib.VisionDetRet;
+import com.tzutalin.dlibtest.SphereView.SphereActivity;
 
 import org.androidannotations.annotations.AfterViews;
 import org.androidannotations.annotations.Background;
@@ -47,7 +51,10 @@ import org.androidannotations.annotations.ViewById;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import hugo.weaving.DebugLog;
 import timber.log.Timber;
@@ -84,6 +91,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mListView = (MaterialListView) findViewById(R.id.material_listview);
+
         setSupportActionBar(mToolbar);
         // Just use hugo to print log
         isExternalStorageWritable();
@@ -96,6 +104,36 @@ public class MainActivity extends AppCompatActivity {
             verifyPermissions(this);
         }
     }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        Log.d("fuck", "menu infalted");
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.action_settings) {
+            Log.d("Fuck", "Settings clicked");
+            Intent intent = new Intent(getApplicationContext(), SphereActivity.class);
+            startActivity(intent);
+
+            return true;
+        }
+
+
+        return super.onOptionsItemSelected(item);
+    }
+
 
     @AfterViews
     protected void setupUI() {
@@ -202,7 +240,8 @@ public class MainActivity extends AppCompatActivity {
                 mTestImgPath = cursor.getString(columnIndex);
                 cursor.close();
                 if (mTestImgPath != null) {
-                    runDetectAsync(mTestImgPath);
+                    //runDetectAsync(mTestImgPath);
+                    asyncFaceDetect(mTestImgPath);
                     Toast.makeText(this, "Img Path:" + mTestImgPath, Toast.LENGTH_SHORT).show();
                 }
             } else {
@@ -217,6 +256,54 @@ public class MainActivity extends AppCompatActivity {
     // Tasks inner class
     // ==========================================================
     private ProgressDialog mDialog;
+
+
+    @Background
+    @NonNull
+    protected void asyncFaceDetect(@NonNull String imgPath) {
+
+        showDiaglog();
+
+        final String targetPath = Constants.getFaceShapeModelPath();
+        if (!new File(targetPath).exists()) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(MainActivity.this, "Copy landmark model to " + targetPath, Toast.LENGTH_SHORT).show();
+                }
+            });
+            FileUtils.copyFileFromRawToOthers(getApplicationContext(), R.raw.shape_predictor_68_face_landmarks, targetPath);
+        }
+
+        if (mFaceDet == null) {
+            mFaceDet = new FaceDet(Constants.getFaceShapeModelPath());
+        }
+
+        Timber.tag(TAG).d("Image path: " + imgPath);
+        List<Card> cardrets = new ArrayList<>();
+
+        List<VisionDetRet> faceList = mFaceDet.detect(imgPath);
+        if (faceList.size() > 0) {
+            Card card = new Card.Builder(MainActivity.this)
+                    .withProvider(BigImageCardProvider.class)
+                    .setDrawable(drawShit(imgPath, faceList, Color.GREEN))
+                    .setTitle("Face det")
+                    .endConfig()
+                    .build();
+            cardrets.add(card);
+        } else {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(getApplicationContext(), "No face", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        addCardListView(cardrets);
+        dismissDialog();
+
+    }
 
     @Background
     @NonNull
@@ -349,6 +436,7 @@ public class MainActivity extends AppCompatActivity {
             // Get landmark
             ArrayList<Point> landmarks = ret.getFaceLandmarks();
             for (Point point : landmarks) {
+
                 int pointX = (int) (point.x * resizeRatio);
                 int pointY = (int) (point.y * resizeRatio);
                 canvas.drawCircle(pointX, pointY, 2, paint);
@@ -363,4 +451,108 @@ public class MainActivity extends AppCompatActivity {
         Bitmap resizedBitmap = Bitmap.createScaledBitmap(bm, newWidth, newHeight, true);
         return resizedBitmap;
     }
+
+
+
+    @DebugLog
+    protected BitmapDrawable drawShit(String path, List<VisionDetRet> results, int color) {
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inSampleSize = 1;
+        Bitmap bm = BitmapFactory.decodeFile(path, options);
+        android.graphics.Bitmap.Config bitmapConfig = bm.getConfig();
+        // set default bitmap config if none
+        if (bitmapConfig == null) {
+            bitmapConfig = android.graphics.Bitmap.Config.ARGB_8888;
+        }
+        // resource bitmaps are imutable,
+        // so we need to convert it to mutable one
+        bm = bm.copy(bitmapConfig, true);
+        int width = bm.getWidth();
+        int height = bm.getHeight();
+        // By ratio scale
+        float aspectRatio = bm.getWidth() / (float) bm.getHeight();
+
+        final int MAX_SIZE = 512;
+        int newWidth = MAX_SIZE;
+        int newHeight = MAX_SIZE;
+        float resizeRatio = 1;
+        newHeight = Math.round(newWidth / aspectRatio);
+        if (bm.getWidth() > MAX_SIZE && bm.getHeight() > MAX_SIZE) {
+            Timber.tag(TAG).d("Resize Bitmap");
+            bm = getResizedBitmap(bm, newWidth, newHeight);
+            resizeRatio = (float) bm.getWidth() / (float) width;
+            Timber.tag(TAG).d("resizeRatio " + resizeRatio);
+        }
+
+        // Create canvas to draw
+        Canvas canvas = new Canvas(bm);
+        Paint paint = new Paint();
+        paint.setColor(color);
+        paint.setStrokeWidth(2);
+        paint.setStyle(Paint.Style.STROKE);
+
+        Paint featuresPaint = new Paint();
+        featuresPaint.setColor(Color.CYAN);
+        featuresPaint.setStrokeWidth(1);
+        paint.setStyle(Paint.Style.STROKE);
+        // Loop result list
+
+        final Set<Integer> key_points = new HashSet<Integer>(Arrays.asList(
+        new Integer[] {
+                //11,//chin
+                17, //jaw
+                22, //right brow
+                27, //left_brow
+                31, //nose bridge
+                36, //nose bottom
+                42, //right eye
+                48, //left eye
+                60, // mouth outer
+                68 //mouth inner
+
+        }
+        ));
+
+        for (VisionDetRet ret : results) {
+            Rect bounds = new Rect();
+            bounds.left = (int) (ret.getLeft() * resizeRatio);
+            bounds.top = (int) (ret.getTop() * resizeRatio);
+            bounds.right = (int) (ret.getRight() * resizeRatio);
+            bounds.bottom = (int) (ret.getBottom() * resizeRatio);
+            canvas.drawRect(bounds, paint);
+            // Get landmark
+            ArrayList<Point> landmarks = ret.getFaceLandmarks();
+            int pointsCount = 0;
+            int FACE_POINTS = 68; //17 - 68
+            int MOUTH_POINTS, RIGHT_BROW, LEFT_BROW, EYE_R, EYE_L, NOISE_P, JAW_P, CHIN_P;
+            MOUTH_POINTS = 68; RIGHT_BROW = 22; LEFT_BROW = 27; EYE_L = 48; EYE_R = 42; NOISE_P = 35; JAW_P = 17; CHIN_P = 11;
+
+
+//            for (Point point : landmarks) {
+//
+//                int pointX = (int) (point.x * resizeRatio);
+//                int pointY = (int) (point.y * resizeRatio);
+//
+//                canvas.drawCircle(pointX, pointY, 2, paint);
+//            }
+
+
+            for (int p = 0 ;  p < 68 -1 ; p++) {
+                if ( ! key_points.contains(p + 1) ) {
+                    int pointXS = (int) (landmarks.get(p).x * resizeRatio);
+                    int pointYS = (int) (landmarks.get(p).y * resizeRatio);
+                    int pointXF = (int) (landmarks.get(p+1).x * resizeRatio);
+                    int pointYF = (int) (landmarks.get(p+1).y * resizeRatio);
+                    canvas.drawLine(pointXS, pointYS, pointXF, pointYF, featuresPaint);
+                }
+
+            }
+
+        }
+
+        return new BitmapDrawable(getResources(), bm);
+    }
+
+
+
 }
