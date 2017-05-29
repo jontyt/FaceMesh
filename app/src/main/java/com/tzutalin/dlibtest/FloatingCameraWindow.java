@@ -18,7 +18,9 @@ package com.tzutalin.dlibtest;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.PixelFormat;
 import android.graphics.Point;
+import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
@@ -33,6 +35,10 @@ import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import com.tzutalin.dlibtest.SphereView.GlRenderer;
+
+import org.opencv.core.Rect;
 
 import java.lang.ref.WeakReference;
 
@@ -57,6 +63,8 @@ public class FloatingCameraWindow {
     private float mScaleHeightRatio = 1.0f;
 
     private static final boolean DEBUG = true;
+    GLSurfaceView mGlSurfaceView;
+    GlRenderer renderer;
 
     public FloatingCameraWindow(Context context) {
         mContext = context;
@@ -74,11 +82,11 @@ public class FloatingCameraWindow {
             mScreenMaxHeight = display.getHeight();
         }
         // Default window size
-        mWindowWidth = mScreenMaxWidth / 2;
-        mWindowHeight = mScreenMaxHeight / 2;
-
-        mWindowWidth = mWindowWidth > 0 && mWindowWidth < mScreenMaxWidth ? mWindowWidth : mScreenMaxWidth;
-        mWindowHeight = mWindowHeight > 0 && mWindowHeight < mScreenMaxHeight ? mWindowHeight : mScreenMaxHeight;
+        mWindowWidth = mScreenMaxWidth ;
+        //mWindowHeight = mScreenMaxHeight / 2;
+        mWindowHeight = mWindowWidth;
+//        mWindowWidth = mWindowWidth > 0 && mWindowWidth < mScreenMaxWidth ? mWindowWidth : mScreenMaxWidth;
+//        mWindowHeight = mWindowHeight > 0 && mWindowHeight < mScreenMaxHeight ? mWindowHeight : mScreenMaxHeight;
     }
 
     public FloatingCameraWindow(Context context, int windowWidth, int windowHeight) {
@@ -166,6 +174,20 @@ public class FloatingCameraWindow {
         });
     }
 
+
+    public  void rotateOrb(double x, double y, double z) {
+        renderer.setMaskRotation(x, y, z);
+    }
+
+    public void scaleOrb(double x, double y, double z) {
+        renderer.setMaskScale(x, y, z);
+    }
+
+    public void translateOrb(android.graphics.Rect rect){
+        renderer.updateOrbRect(rect);
+
+    }
+
     public void setMoreInformation(final String info) {
         checkInit();
         mUIHandler.post(new Runnable() {
@@ -197,6 +219,8 @@ public class FloatingCameraWindow {
         private TextView mInfoText;
         private boolean mIsMoving = false;
 
+
+
         public FloatCamView(FloatingCameraWindow window) {
             super(window.mContext);
             mWeakRef = new WeakReference<FloatingCameraWindow>(window);
@@ -211,18 +235,36 @@ public class FloatingCameraWindow {
             });
 
             View floatView = mLayoutInflater.inflate(R.layout.cam_window_view, body, true);
+
+
+            mGlSurfaceView = new GLSurfaceView(floatView.getContext());
+            mGlSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
+            mGlSurfaceView.getHolder().setFormat(PixelFormat.TRANSLUCENT);
+            renderer = new GlRenderer(floatView.getContext());
+
+            mGlSurfaceView.setRenderer(renderer);
+            mGlSurfaceView.setZOrderOnTop(true);
+            body.addView(mGlSurfaceView);
+
+
+
             mColorView = (ImageView) findViewById(R.id.imageView_c);
             mFPSText = (TextView) findViewById(R.id.fps_textview);
             mInfoText = (TextView) findViewById(R.id.info_textview);
-            mFPSText.setVisibility(View.GONE);
-            mInfoText.setVisibility(View.GONE);
+            mFPSText.setVisibility(View.VISIBLE);
+            mInfoText.setVisibility(View.VISIBLE);
 
             int colorMaxWidth = (int) (mWindowWidth* window.mScaleWidthRatio);
             int colorMaxHeight = (int) (mWindowHeight * window.mScaleHeightRatio);
 
             mColorView.getLayoutParams().width = colorMaxWidth;
+            //mColorView.setScaleY(-1f);
             mColorView.getLayoutParams().height = colorMaxHeight;
+
         }
+
+
+
 
         @Override
         public boolean onTouchEvent(MotionEvent event) {
@@ -261,6 +303,8 @@ public class FloatingCameraWindow {
             }
             return true;
         }
+
+
 
         public void setRGBImageView(Bitmap rgb) {
             if (rgb != null && !rgb.isRecycled()) {

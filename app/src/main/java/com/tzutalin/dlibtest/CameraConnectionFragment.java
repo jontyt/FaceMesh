@@ -41,6 +41,7 @@ import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.ImageReader;
+import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -54,6 +55,8 @@ import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
+
+import com.tzutalin.dlibtest.SphereView.GlRenderer;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -283,10 +286,13 @@ public class CameraConnectionFragment extends Fragment {
         return new CameraConnectionFragment();
     }
 
+
     @Override
     public View onCreateView(
             final LayoutInflater inflater, final ViewGroup container, final Bundle savedInstanceState) {
         return inflater.inflate(R.layout.camera_connection_fragment, container, false);
+
+
     }
 
     @Override
@@ -361,10 +367,11 @@ public class CameraConnectionFragment extends Fragment {
             for (final String cameraId : manager.getCameraIdList()) {
                 final CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
                 final Integer facing = characteristics.get(CameraCharacteristics.LENS_FACING);
+
                 // If facing back camera or facing external camera exist, we won't use facing front camera
                 if (num_facing_back_camera != null && num_facing_back_camera > 0) {
                     // We don't use a front facing camera in this sample if there are other camera device facing types
-                    if (facing != null && facing == CameraCharacteristics.LENS_FACING_FRONT) {
+                    if (facing != null && facing == CameraCharacteristics.LENS_FACING_BACK) {
                         continue;
                     }
                 }

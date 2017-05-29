@@ -1,16 +1,22 @@
 package com.tzutalin.dlibtest.SphereView;
 
+import android.app.Activity;
 import android.opengl.GLSurfaceView;
-import android.support.annotation.NonNull;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 
-public class SphereActivity extends AppCompatActivity {
-
+/**
+ * Main android application file.  This starts everything else.
+ *
+ * @author Jim Cornmell
+ * @since July 2013
+ */
+public class MainApp extends Activity {
+    /** The OpenGL view. */
     private GLSurfaceView mGlSurfaceView;
 
     private MotionEvent.PointerCoords point0 = new MotionEvent.PointerCoords();
@@ -33,6 +39,7 @@ public class SphereActivity extends AppCompatActivity {
 
         // Handle touch events.
         this.mGlSurfaceView.setOnTouchListener(touchListener(renderer));
+
     }
 
     @NonNull
@@ -75,6 +82,4 @@ public class SphereActivity extends AppCompatActivity {
         this.mGlSurfaceView.onPause();
         super.onPause();
     }
-
-
 }

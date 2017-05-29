@@ -9,21 +9,28 @@ import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.PixelFormat;
 import android.graphics.Point;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
+import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
+import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -31,6 +38,7 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import com.dexafree.materialList.card.Card;
@@ -40,6 +48,8 @@ import com.tzutalin.dlib.Constants;
 import com.tzutalin.dlib.FaceDet;
 import com.tzutalin.dlib.PedestrianDet;
 import com.tzutalin.dlib.VisionDetRet;
+import com.tzutalin.dlibtest.PoseDetection.PoseDetection;
+import com.tzutalin.dlibtest.SphereView.GlRenderer;
 import com.tzutalin.dlibtest.SphereView.SphereActivity;
 
 import org.androidannotations.annotations.AfterViews;
@@ -48,6 +58,9 @@ import org.androidannotations.annotations.Click;
 import org.androidannotations.annotations.EActivity;
 import org.androidannotations.annotations.UiThread;
 import org.androidannotations.annotations.ViewById;
+import org.opencv.android.BaseLoaderCallback;
+import org.opencv.android.LoaderCallbackInterface;
+import org.opencv.android.OpenCVLoader;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -59,12 +72,17 @@ import java.util.Set;
 import hugo.weaving.DebugLog;
 import timber.log.Timber;
 
+
+
 @EActivity(R.layout.activity_main)
 public class MainActivity extends AppCompatActivity {
     private static final int RESULT_LOAD_IMG = 1;
     private static final int REQUEST_CODE_PERMISSION = 2;
 
     private static final String TAG = "MainActivity";
+
+    private GLSurfaceView mGlSurfaceView;
+    private GlRenderer renderer;
 
     // Storage Permissions
     private static String[] PERMISSIONS_REQ = {
@@ -87,12 +105,38 @@ public class MainActivity extends AppCompatActivity {
     FaceDet mFaceDet;
     PedestrianDet mPersonDet;
 
+
+
+    private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
+        @Override
+        public void onManagerConnected(int status) {
+
+            switch (status) {
+                case LoaderCallbackInterface.SUCCESS:
+                {
+                    Log.i("cunt", "OpenCV loaded successfully");
+
+
+                } break;
+                default:
+                {
+                    super.onManagerConnected(status);
+                } break;
+            }
+        }
+    };
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mListView = (MaterialListView) findViewById(R.id.material_listview);
 
         setSupportActionBar(mToolbar);
+
+        //RelativeLayout body = (RelativeLayout) this.findViewById(R.id.mainLayout);
+
+
         // Just use hugo to print log
         isExternalStorageWritable();
         isExternalStorageReadable();
@@ -102,6 +146,21 @@ public class MainActivity extends AppCompatActivity {
 
         if (currentapiVersion >= Build.VERSION_CODES.M) {
             verifyPermissions(this);
+        }
+    }
+
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+
+        if (!OpenCVLoader.initDebug()) {
+            Log.d("cunt", "Internal OpenCV library not found. Using OpenCV Manager for initialization");
+            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_2_0, this, mLoaderCallback);
+        } else {
+            Log.d("cunt", "OpenCV library found inside package. Using it!");
+            mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         }
     }
 
@@ -138,6 +197,8 @@ public class MainActivity extends AppCompatActivity {
     @AfterViews
     protected void setupUI() {
         mToolbar.setTitle(getString(R.string.app_name));
+
+
         Toast.makeText(MainActivity.this, getString(R.string.description_info), Toast.LENGTH_LONG).show();
     }
 
@@ -150,6 +211,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Click({R.id.fab_cam})
     protected void launchCameraPreview() {
+//        startActivity(new Intent(this, SphereActivity.class));
         startActivity(new Intent(this, CameraActivity.class));
     }
 
@@ -206,7 +268,7 @@ public class MainActivity extends AppCompatActivity {
     protected void demoStaticImage() {
         if (mTestImgPath != null) {
             Timber.tag(TAG).d("demoStaticImage() launch a task to det");
-            runDetectAsync(mTestImgPath);
+            asyncFaceDetect(mTestImgPath);
         } else {
             Timber.tag(TAG).d("demoStaticImage() mTestImgPath is null, go to gallery");
             Toast.makeText(MainActivity.this, "Pick an image to run algorithms", Toast.LENGTH_SHORT).show();
@@ -227,6 +289,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+
+
+
         try {
             // When an Image is picked
             if (requestCode == RESULT_LOAD_IMG && resultCode == RESULT_OK && null != data) {
@@ -250,6 +315,17 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e) {
             Toast.makeText(this, "Something went wrong", Toast.LENGTH_LONG).show();
         }
+
+
+        RelativeLayout body = (RelativeLayout) this.findViewById(R.id.mainLayout);
+        mGlSurfaceView = new GLSurfaceView(this.getBaseContext());
+        mGlSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
+        mGlSurfaceView.getHolder().setFormat(PixelFormat.TRANSLUCENT);
+        renderer = new GlRenderer(this.getBaseContext());
+
+        mGlSurfaceView.setRenderer(renderer);
+        mGlSurfaceView.setZOrderOnTop(true);
+        body.addView(mGlSurfaceView);
     }
 
     // ==========================================================
@@ -291,6 +367,10 @@ public class MainActivity extends AppCompatActivity {
                     .endConfig()
                     .build();
             cardrets.add(card);
+
+            //Rotate the mask
+
+
         } else {
             runOnUiThread(new Runnable() {
                 @Override
@@ -486,6 +566,8 @@ public class MainActivity extends AppCompatActivity {
 
         // Create canvas to draw
         Canvas canvas = new Canvas(bm);
+
+
         Paint paint = new Paint();
         paint.setColor(color);
         paint.setStrokeWidth(2);
@@ -499,7 +581,7 @@ public class MainActivity extends AppCompatActivity {
 
         final Set<Integer> key_points = new HashSet<Integer>(Arrays.asList(
         new Integer[] {
-                //11,//chin
+                //11, //chin
                 17, //jaw
                 22, //right brow
                 27, //left_brow
@@ -513,29 +595,17 @@ public class MainActivity extends AppCompatActivity {
         }
         ));
 
+
+
         for (VisionDetRet ret : results) {
             Rect bounds = new Rect();
             bounds.left = (int) (ret.getLeft() * resizeRatio);
             bounds.top = (int) (ret.getTop() * resizeRatio);
             bounds.right = (int) (ret.getRight() * resizeRatio);
             bounds.bottom = (int) (ret.getBottom() * resizeRatio);
-            canvas.drawRect(bounds, paint);
+            //canvas.drawRect(bounds, paint);
             // Get landmark
             ArrayList<Point> landmarks = ret.getFaceLandmarks();
-            int pointsCount = 0;
-            int FACE_POINTS = 68; //17 - 68
-            int MOUTH_POINTS, RIGHT_BROW, LEFT_BROW, EYE_R, EYE_L, NOISE_P, JAW_P, CHIN_P;
-            MOUTH_POINTS = 68; RIGHT_BROW = 22; LEFT_BROW = 27; EYE_L = 48; EYE_R = 42; NOISE_P = 35; JAW_P = 17; CHIN_P = 11;
-
-
-//            for (Point point : landmarks) {
-//
-//                int pointX = (int) (point.x * resizeRatio);
-//                int pointY = (int) (point.y * resizeRatio);
-//
-//                canvas.drawCircle(pointX, pointY, 2, paint);
-//            }
-
 
             for (int p = 0 ;  p < 68 -1 ; p++) {
                 if ( ! key_points.contains(p + 1) ) {
@@ -543,12 +613,54 @@ public class MainActivity extends AppCompatActivity {
                     int pointYS = (int) (landmarks.get(p).y * resizeRatio);
                     int pointXF = (int) (landmarks.get(p+1).x * resizeRatio);
                     int pointYF = (int) (landmarks.get(p+1).y * resizeRatio);
-                    canvas.drawLine(pointXS, pointYS, pointXF, pointYF, featuresPaint);
+                    //canvas.drawLine(pointXS, pointYS, pointXF, pointYF, featuresPaint);
                 }
 
             }
+            Paint maskPaint = new Paint();
+            maskPaint.setColor(Color.RED);
+            maskPaint.setStrokeWidth(3);
+            //maskPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
+            maskPaint.setStyle(Paint.Style.FILL_AND_STROKE);
+
+            int[] indices = {8, 16, 1, 10};
+
+            Path mpath = new Path();
+            mpath.setFillType(Path.FillType.EVEN_ODD);
+            Point start =landmarks.get(1);
+            mpath.moveTo(start.x * resizeRatio, start.y * resizeRatio);
+            for (int i = 0 ; i  <  indices.length -1 ; i ++) {
+                start =landmarks.get(indices[i]);
+                Point end = landmarks.get(indices[i+1]);
+
+                mpath.lineTo(start.x * resizeRatio, start.y * resizeRatio);
+                //canvas.drawLine(start.x, start.y, end.x, end.y, paint);
+            }
+
+
+            mpath.close();
+            //canvas.drawPath(mpath, maskPaint);
 
         }
+
+        if (results.size() > 0) {
+            PoseDetection pd = new PoseDetection();
+            double[] rotationRads = pd.estimatePose(results.get(0), bm);
+            Log.d("shit", "x: " + rotationRads[0] * 57 + " y : " + rotationRads[1]* 57 + " z : " + rotationRads[2] * 57);
+            renderer.setMaskScale(0.8, 0.8, 0.8);
+            renderer.setMaskRotation(rotationRads[0], rotationRads[1], rotationRads[2]);
+
+            Paint textPaint = new Paint();
+            textPaint.setTextSize(12 * getResources().getDisplayMetrics().density );
+            textPaint.setAntiAlias(true);
+
+            String text = String.format("x: %4.2f y: %4.2f z: %4.2f", rotationRads[0] * 57, rotationRads[1] * 57, rotationRads[2] * 57 );
+
+            canvas.drawText(text
+                    , canvas.getWidth() /10, canvas.getHeight()/10, textPaint);
+
+        }
+
 
         return new BitmapDrawable(getResources(), bm);
     }

@@ -33,19 +33,46 @@ import android.media.ImageReader;
 import android.media.ImageReader.OnImageAvailableListener;
 import android.os.Handler;
 import android.os.Trace;
+import android.renderscript.Matrix3f;
 import android.util.Log;
 import android.view.Display;
+import android.view.MotionEvent;
 import android.view.WindowManager;
 
 import com.tzutalin.dlib.Constants;
 import com.tzutalin.dlib.FaceDet;
 import com.tzutalin.dlib.VisionDetRet;
+import com.tzutalin.dlibtest.PoseDetection.PoseDetection;
 
 import junit.framework.Assert;
 
+import org.opencv.android.OpenCVLoader;
+import org.opencv.android.Utils;
+import org.opencv.calib3d.Calib3d;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfDouble;
+import org.opencv.core.MatOfPoint2f;
+import org.opencv.core.MatOfPoint3f;
+import org.opencv.core.Point3;
+import org.opencv.core.Scalar;
+import org.opencv.imgproc.Imgproc;
+
 import java.io.File;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
+import static java.lang.Math.asin;
+import static java.lang.Math.atan2;
+import static org.opencv.core.Core.norm;
+import static org.opencv.core.Core.transpose;
+import static org.opencv.core.CvType.CV_64F;
+import static org.opencv.core.CvType.CV_64FC1;
+
 
 /**
  * Class that takes in preview frames and converts the image to Bitmaps to process with dlib lib.
@@ -73,6 +100,16 @@ public class OnGetImageListener implements OnImageAvailableListener {
     private TrasparentTitleView mTransparentTitleView;
     private FloatingCameraWindow mWindow;
     private Paint mFaceLandmardkPaint;
+    private PoseDetection poseDetection = new PoseDetection();
+
+    static {
+        if (OpenCVLoader.initDebug()) {
+            Log.d("cunt", "initialised in get image listener");
+        }
+        else {
+            Log.d("cunt", "fukn failed");
+        }
+    }
 
     public void initialize(
             final Context context,
@@ -103,6 +140,7 @@ public class OnGetImageListener implements OnImageAvailableListener {
         }
     }
 
+
     private void drawResizedBitmap(final Bitmap src, final Bitmap dst) {
 
         Display getOrient = ((WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
@@ -114,7 +152,7 @@ public class OnGetImageListener implements OnImageAvailableListener {
         Log.d(TAG, String.format("screen size (%d,%d)", screen_width, screen_height));
         if (screen_width < screen_height) {
             orientation = Configuration.ORIENTATION_PORTRAIT;
-            mScreenRotation = 90;
+            mScreenRotation = 270; //before 90
         } else {
             orientation = Configuration.ORIENTATION_LANDSCAPE;
             mScreenRotation = 0;
@@ -234,6 +272,30 @@ public class OnGetImageListener implements OnImageAvailableListener {
                         long endTime = System.currentTimeMillis();
                         mTransparentTitleView.setText("Time cost: " + String.valueOf((endTime - startTime) / 1000f) + " sec");
                         // Draw on bitmap
+
+
+                        Paint featuresPaint = new Paint();
+                        featuresPaint.setColor(Color.CYAN);
+                        featuresPaint.setStrokeWidth(1);
+                        featuresPaint.setStyle(Paint.Style.STROKE);
+                        // Loop result list
+
+                        final Set<Integer> key_points = new HashSet<Integer>(Arrays.asList(
+                                new Integer[] {
+                                        //11, //chin
+                                        17, //jaw
+                                        22, //right brow
+                                        27, //left_brow
+                                        31, //nose bridge
+                                        36, //nose bottom
+                                        42, //right eye
+                                        48, //left eye
+                                        60, // mouth outer
+                                        68 //mouth inner
+
+                                }
+                        ));
+
                         if (results != null) {
                             for (final VisionDetRet ret : results) {
                                 float resizeRatio = 1.0f;
@@ -244,22 +306,89 @@ public class OnGetImageListener implements OnImageAvailableListener {
                                 bounds.bottom = (int) (ret.getBottom() * resizeRatio);
                                 Canvas canvas = new Canvas(mCroppedBitmap);
                                 canvas.drawRect(bounds, mFaceLandmardkPaint);
+                                Log.d("cunt", "rectangle points : "  +bounds.left + " r: " + bounds.right + "width : " + mCroppedBitmap.getWidth() + " height: " + mCroppedBitmap.getHeight());
+
+
+                                mWindow.translateOrb(bounds);
+
 
                                 // Draw landmark
                                 ArrayList<Point> landmarks = ret.getFaceLandmarks();
-                                for (Point point : landmarks) {
-                                    int pointX = (int) (point.x * resizeRatio);
-                                    int pointY = (int) (point.y * resizeRatio);
-                                    canvas.drawCircle(pointX, pointY, 2, mFaceLandmardkPaint);
+                                //Old method
+//                                for (Point point : landmarks) {
+//                                    int pointX = (int) (point.x * resizeRatio);
+//                                    int pointY = (int) (point.y * resizeRatio);
+//                                    canvas.drawCircle(pointX, pointY, 2, mFaceLandmardkPaint);
+//                                }
+
+                                for (int p = 0 ;  p < 68 -1 ; p++) {
+                                    if ( ! key_points.contains(p + 1) ) {
+                                        int pointXS = (int) (landmarks.get(p).x * resizeRatio);
+                                        int pointYS = (int) (landmarks.get(p).y * resizeRatio);
+                                        int pointXF = (int) (landmarks.get(p+1).x * resizeRatio);
+                                        int pointYF = (int) (landmarks.get(p+1).y * resizeRatio);
+                                        canvas.drawLine(pointXS, pointYS, pointXF, pointYF, featuresPaint);
+                                    }
+
                                 }
+                                canvas.drawCircle(landmarks.get(33).x, landmarks.get(33).y, 3, mFaceLandmardkPaint);
+
                             }
+                            if(results.size() > 0) {
+
+                                long beforePose = System.currentTimeMillis();
+
+                                double[] rotationRads = poseDetection.estimatePose(results.get(0), mCroppedBitmap);
+                                long aftrePOse = System.currentTimeMillis();
+
+                                Log.d("timetopose", String.valueOf((aftrePOse - beforePose) /1000f));
+                                mWindow.rotateOrb(rotationRads[0], rotationRads[1], rotationRads[2]);
+
+                                //window width =
+                                float widthWindow = mCroppedBitmap.getWidth();
+                                //scale = 1 is half the width
+                                //left checkbone ..
+
+                                Point ear_r = results.get(0).getFaceLandmarks().get(0);
+                                Point ear_l = results.get(0).getFaceLandmarks().get(16);
+
+                                double faceWidth =
+                                        Math.sqrt(
+                                        Math.pow((ear_l.x - ear_r.x), 2.0f)
+                                        + Math.pow((ear_l.y - ear_r.y), 2) );
+
+                                //At 1 facewidth is 1 / 4 of the screen
+                                double faceWidthScale =  faceWidth / (widthWindow / 2.0f ) ;
+
+                                Point noseTip = results.get(0).getFaceLandmarks().get(33);
+                                Point chin = results.get(0).getFaceLandmarks().get(8);
+                                double faceHeight =
+                                        Math.sqrt(
+                                                Math.pow((noseTip.x - chin.x), 2.0f)
+                                                        + Math.pow((noseTip.y - chin.y), 2) );
+
+
+                                faceHeight = faceHeight * 2;
+
+
+                                mWindow.scaleOrb(faceWidthScale * 1.20f, faceHeight * 1.20f, 1.0f );
+                            }
+
                         }
 
                         mWindow.setRGBBitmap(mCroppedBitmap);
                         mIsComputing = false;
                     }
+
+
                 });
 
         Trace.endSection();
     }
+
+
+
+
+
+
 }

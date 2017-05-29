@@ -156,5 +156,6 @@
     <orderEntry type="library" exported="" name="animated-vector-drawable-25.1.1" level="project" />
     <orderEntry type="library" exported="" name="cardview-v7-22.2.0" level="project" />
     <orderEntry type="module" module-name="dlib" exported="" />
+    <orderEntry type="module" module-name="openCVLibrary320" exported="" />
   </component>
 </module>
