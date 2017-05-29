@@ -4,7 +4,7 @@
 package com.tzutalin.dlibtest.SphereView;
 
 /**
- * @author Jim Cornmell
+ * @author Jonty Trombik
  *
  */
 class Maths {

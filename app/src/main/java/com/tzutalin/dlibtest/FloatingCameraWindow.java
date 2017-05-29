@@ -99,11 +99,6 @@ public class FloatingCameraWindow {
         mScaleWidthRatio = (float) windowWidth / mWindowHeight;
         mScaleHeightRatio = (float) windowHeight / mWindowHeight;
 
-        if (DEBUG) {
-            Log.d(TAG, "mScaleWidthRatio: " + mScaleWidthRatio);
-            Log.d(TAG, "mScaleHeightRatio: " + mScaleHeightRatio);
-        }
-
         mWindowWidth = windowWidth;
         mWindowHeight = windowHeight;
     }

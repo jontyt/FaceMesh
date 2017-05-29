@@ -10,10 +10,9 @@
     - Open Project structure
     - Select the dependencies tab
     - Select the '+' button -> add module dependency -> select the opencv module.
-
+- Repeat the same steps with the dlib library obtained from here.
 
 <h2> Components </h2>
-
 
 
 <h3>  Third Part components </h3>

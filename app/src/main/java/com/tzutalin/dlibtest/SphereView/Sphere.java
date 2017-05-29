@@ -16,8 +16,7 @@ import javax.microedition.khronos.opengles.GL10;
 /**
  * Render a sphere.
  *
- * @author Jim Cornmell
- * @since July 2013
+ * @author Jonty Trombik
  */
 class Sphere {
     /** Maximum allowed depth. */

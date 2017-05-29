@@ -1,17 +1,13 @@
 package com.tzutalin.dlibtest.SphereView;
 
 import android.content.Context;
-import android.graphics.Paint;
 import android.opengl.GLSurfaceView.Renderer;
 import android.opengl.GLU;
 import android.util.Log;
 import android.view.MotionEvent;
 
 
-import com.tzutalin.dlibtest.OnGetImageListener;
 import com.tzutalin.dlibtest.R;
-
-import org.opencv.core.Rect;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -72,11 +68,6 @@ public class GlRenderer implements Renderer {
     private float mZAxistiltAngle;
 
     /** Scaling of the sphere. */
-    private float mSphereScale = 1.0f;
-
-    private float mSphereScaleX = 1.0f;
-    private float mSphereScaleY = 1.0f;
-    private float mSphereScaleZ = 1.0f;
     private float width, height;
 
 
@@ -100,8 +91,6 @@ public class GlRenderer implements Renderer {
     }
 
     public void setMaskRotation(double rx, double ry,double rz) {
-
-        Log.d("trippy", "updating angles - x: " + -rx * 57.0f + " y: " + ry * 57.0f + " z: " + -rz * 57.0f);
 
 
 //        mRotationAngle = (float) -rx * 57.0f;

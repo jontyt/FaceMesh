@@ -54,15 +54,14 @@ public class CameraActivity extends Activity {
 
 
     static {
-        // If you use opencv 2.4, System.loadLibrary("opencv_java")
-        Log.d("cunt", "before static gsidhg");
+
         System.loadLibrary("opencv_java3");
 
         if (OpenCVLoader.initDebug()) {
-            Log.d("cunt", "loaded statically allgee");
+            Log.d("Project", "Loaded correctly.");
         }
         else {
-            Log.d("cunt", "didnt load allgee statically.");
+            Log.d("OpenCV", "didnt load correctly.");
         }
     }
 

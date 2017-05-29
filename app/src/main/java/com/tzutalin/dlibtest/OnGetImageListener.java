@@ -104,10 +104,8 @@ public class OnGetImageListener implements OnImageAvailableListener {
 
     static {
         if (OpenCVLoader.initDebug()) {
-            Log.d("cunt", "initialised in get image listener");
         }
         else {
-            Log.d("cunt", "fukn failed");
         }
     }
 
@@ -149,7 +147,6 @@ public class OnGetImageListener implements OnImageAvailableListener {
         getOrient.getSize(point);
         int screen_width = point.x;
         int screen_height = point.y;
-        Log.d(TAG, String.format("screen size (%d,%d)", screen_width, screen_height));
         if (screen_width < screen_height) {
             orientation = Configuration.ORIENTATION_PORTRAIT;
             mScreenRotation = 270; //before 90
@@ -306,7 +303,6 @@ public class OnGetImageListener implements OnImageAvailableListener {
                                 bounds.bottom = (int) (ret.getBottom() * resizeRatio);
                                 Canvas canvas = new Canvas(mCroppedBitmap);
                                 canvas.drawRect(bounds, mFaceLandmardkPaint);
-                                Log.d("cunt", "rectangle points : "  +bounds.left + " r: " + bounds.right + "width : " + mCroppedBitmap.getWidth() + " height: " + mCroppedBitmap.getHeight());
 
 
                                 mWindow.translateOrb(bounds);
@@ -341,7 +337,6 @@ public class OnGetImageListener implements OnImageAvailableListener {
                                 double[] rotationRads = poseDetection.estimatePose(results.get(0), mCroppedBitmap);
                                 long aftrePOse = System.currentTimeMillis();
 
-                                Log.d("timetopose", String.valueOf((aftrePOse - beforePose) /1000f));
                                 mWindow.rotateOrb(rotationRads[0], rotationRads[1], rotationRads[2]);
 
                                 //window width =

@@ -156,10 +156,8 @@ public class MainActivity extends AppCompatActivity {
 
 
         if (!OpenCVLoader.initDebug()) {
-            Log.d("cunt", "Internal OpenCV library not found. Using OpenCV Manager for initialization");
-            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_2_0, this, mLoaderCallback);
+             OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_2_0, this, mLoaderCallback);
         } else {
-            Log.d("cunt", "OpenCV library found inside package. Using it!");
             mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         }
     }
@@ -167,7 +165,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        Log.d("fuck", "menu infalted");
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
     }
@@ -182,7 +179,6 @@ public class MainActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
-            Log.d("Fuck", "Settings clicked");
             Intent intent = new Intent(getApplicationContext(), SphereActivity.class);
             startActivity(intent);
 
@@ -646,7 +642,6 @@ public class MainActivity extends AppCompatActivity {
         if (results.size() > 0) {
             PoseDetection pd = new PoseDetection();
             double[] rotationRads = pd.estimatePose(results.get(0), bm);
-            Log.d("shit", "x: " + rotationRads[0] * 57 + " y : " + rotationRads[1]* 57 + " z : " + rotationRads[2] * 57);
             renderer.setMaskScale(0.8, 0.8, 0.8);
             renderer.setMaskRotation(rotationRads[0], rotationRads[1], rotationRads[2]);
 

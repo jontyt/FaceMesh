@@ -89,8 +89,6 @@ public class PoseDetection {
       // points2d.add(new org.opencv.core.Point(jaw_l.x, jaw_l.y));
 
 
-
-
 //        points2d.add(new org.opencv.core.Point(ear_l.x, ear_l.y));
 //        points2d.add(new org.opencv.core.Point(ear_r.x, ear_r.y));
 
@@ -127,10 +125,6 @@ public class PoseDetection {
 
         double focal_length = imgMatrix.cols();
 
-        //Log.d("cunt", "focal length; "+ focal_length + " centre x: " + centre.x  + "  vcentre y" + centre.y);
-
-        //MatOfDouble cam_matrix = new MatOfDouble(focal_length, 0, centre.x, 0, focal_length, centre.y, 0, 0, 1.0);
-
 
         Mat intrinsics = Mat.eye(3, 3, CvType.CV_64F);
         intrinsics.put(0, 0, focal_length);
@@ -154,22 +148,6 @@ public class PoseDetection {
         Calib3d.solvePnP(model_points, image_points, intrinsics,
                 dist_coeffs, rotation_vector, translation_vector);
 
-        //Calib3d.solvePnPRansac(model_points, image_points, intrinsics, dist_coeffs, rotation_vector, translation_vector);
-
-
-        //Mat rot_matrix = new Mat();
-
-//        //Draw line
-//        ArrayList<Point3> nose_end_3d = new ArrayList<Point3>();
-//        MatOfPoint2f nose_end_2d = new MatOfPoint2f();
-//        nose_end_3d.add(new Point3(0, 0, 1000.0));
-//        MatOfPoint3f m3 = new  MatOfPoint3f();
-//        m3.fromList(nose_end_3d);
-
-
-        //Calib3d.projectPoints(m3, rotation_vector, translation_vector, intrinsics, dist_coeffs, nose_end_2d);
-        //Log.d("testrotVectr", rotation_vector.toString());
-        Log.d("testrotVectr", String.format("values: %4.2f  %4.2f  %4.2f ",rotation_vector.get(1, 0)[0]*57, rotation_vector.get(0,0)[0]*57, rotation_vector.get(2,0)[0]*57));
 
         return new double[] {rotation_vector.get(1, 0)[0], rotation_vector.get(0, 0)[0], rotation_vector.get(2, 0)[0]};
     }
