@@ -3,14 +3,14 @@
 
 <h2> Getting started</h2>
 
-- Download the OpenCV Android sdk from [https://sourceforge.net/projects/opencvlibrary/files/opencv-android/3.2.0/](here).
+- Download the OpenCV Android sdk from [here](https://sourceforge.net/projects/opencvlibrary/files/opencv-android/3.2.0/).
 - In the Android Studio project, from the menu select file -> new -> import existing module
 - Select the OpenCV sdk location (OpenCV-android-sdk/sdk/java)
 - Add the imported module as a dependency:
     - Open Project structure
     - Select the dependencies tab
     - Select the '+' button -> add module dependency -> select the opencv module.
-- Repeat the same steps with the dlib library obtained from [https://github.com/tzutalin/dlib-android](here.)
+- Repeat the same steps with the dlib library obtained from [here.](https://github.com/tzutalin/dlib-android].
 
 <h2> Components </h2>
 
