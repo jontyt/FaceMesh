@@ -38,7 +38,6 @@
             android:label="@string/title_activity_image_bay"
             android:theme="@style/AppTheme.NoActionBar" />
 
-        <activity android:name=".SphereView.SphereActivity"></activity>
     </application>
 
 </manifest>

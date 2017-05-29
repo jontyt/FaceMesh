@@ -19,8 +19,7 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PixelFormat;
 import android.graphics.Point;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffXfermode;
+
 import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
@@ -50,7 +49,7 @@ import com.tzutalin.dlib.PedestrianDet;
 import com.tzutalin.dlib.VisionDetRet;
 import com.tzutalin.dlibtest.PoseDetection.PoseDetection;
 import com.tzutalin.dlibtest.SphereView.GlRenderer;
-import com.tzutalin.dlibtest.SphereView.SphereActivity;
+
 
 import org.androidannotations.annotations.AfterViews;
 import org.androidannotations.annotations.Background;
@@ -177,13 +176,6 @@ public class MainActivity extends AppCompatActivity {
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            Intent intent = new Intent(getApplicationContext(), SphereActivity.class);
-            startActivity(intent);
-
-            return true;
-        }
 
 
         return super.onOptionsItemSelected(item);
@@ -207,7 +199,6 @@ public class MainActivity extends AppCompatActivity {
 
     @Click({R.id.fab_cam})
     protected void launchCameraPreview() {
-//        startActivity(new Intent(this, SphereActivity.class));
         startActivity(new Intent(this, CameraActivity.class));
     }
 

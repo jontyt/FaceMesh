@@ -26,6 +26,17 @@ The second library, dlib, handles the facial landmark identifications.
 The jni folder (src/main/jni) contains native build steps along with c++ wrapper code to interact with with native openCV and Dlib libraries
 and return information about face bounding boxes and landmark points.
 
-<h3> Android components </h3>
+
+<h4> Pose Detection </h4>
+
+- This class handles the pose estimation calculations, given the face detection/landmark results.
+
+<h4> SphereView </h4>
+The SphereView package handles the OpenGL mask renderering and
+
+
+<h4> Android components </h4>
+The FloatingCameraWindow is a hovering imageView which renders a a cropped section of
+the camera preview. The rendered mask is overlayed over this view.
 
 
